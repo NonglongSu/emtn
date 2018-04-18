@@ -4,8 +4,7 @@
 *.zip
 
 # Non-version folders
-Pictures/
-GMM/
+Documents
 
 #Non-Tex documents
 *.pdf
