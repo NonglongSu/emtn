@@ -1,0 +1,13 @@
+# Since it is a Dropbox synchronized, we only want to keep track versions of coding files
+
+# Compressed files
+*.zip
+
+# Non-version folders
+Pictures/
+GMM/
+
+#Non-Tex documents
+*.pdf
+*.txt
+
