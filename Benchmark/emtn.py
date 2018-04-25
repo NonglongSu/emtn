@@ -6,8 +6,8 @@ def EM(tolerance):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
-    p,q,r = 0.3,0.3,0.3#np.random.rand(3)
-    piA,piC,piG,piT = 0.25,0.25,0.25,0.25#np.random.dirichlet(np.ones(4))   #random values that all add up to 1
+    p,q,r = np.random.rand(3)
+    piA,piC,piG,piT = np.random.dirichlet(np.ones(4))   #random values that all add up to 1
     print('piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
     piR = piA+piG
     piY = piC+piT
@@ -72,10 +72,9 @@ def EM(tolerance):
         if (logLold > logLnew):
             print('log Likelihood error')
             break
-        logLold = logLnew
         convergence = np.absolute(logLnew-logLold)
-    print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t =',t,' rho= ',rho)
-        #logLold=logLnew
+        print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t =',t,' rho= ',rho)
+        logLold=logLnew
   
 def printMatrix(M):
     print('\n',M[0],M[1],M[2],M[3],'\n',M[4],M[5],M[6],M[7],'\n', \

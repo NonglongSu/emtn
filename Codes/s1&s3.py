@@ -33,7 +33,7 @@ def printMatrix(M):
     print(M[0],M[1],M[2],M[3],'\n',M[4],M[5],M[6],M[7],'\n', \
       M[8],M[9],M[10],M[11],'\n',M[12],M[13],M[14],M[15])
 
-def fullLikelihood():
+#def fullLikelihood():
 
 def generateTNsamples(piA,piC,piG,piT,p,q,r):
     piR = piA + piG
