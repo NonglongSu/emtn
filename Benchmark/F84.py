@@ -2,15 +2,17 @@
 import numpy as np
 
 def EM(tolerance):
-    #randomly generate coefficients
     #   p = exp(-alfa*t)
     #   q = exp(-beta*t)
-    p,q = 0.6,0.3 #np.random.rand(2)
-    piA,piC,piG,piT = 0.25,0.25,0.25,0.25#np.random.dirichlet(np.ones(4))   #random values that all add up to 1
+    
+    #randomly generate coefficients
+    p,q = np.random.rand(2)
+    piA,piC,piG,piT = np.random.dirichlet(np.ones(4))   #random values that all add up to 1
     print('piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
     piR = piA+piG
     piY = piC+piT
     S = TN([piA,piC,piG,piT],p,q)
+    print('sum: ',S.sum())
     NN = np.random.multinomial(10000,np.reshape(S,16))  #values for matrix of transitions
     printMatrix(NN)
 
@@ -54,8 +56,7 @@ def EM(tolerance):
         s11=s4
           
         #M-step
-        r=s1/(s1+s3)
-        p=s2/(s2+s4)
+        p=(s2+s1)/(s1+s2+s3+s4)
         q=(s1+s2+s3+s4)/(s1+s2+s3+s4+s5)        
         piA = (s6*(-s10+s6+s7))/((s6+s7)*(-s10-s11+s6+s7+s8+s9))
         piC = (s8*(-s11+s8+s9))/((s8+s9)*(-s10-s11+s6+s7+s8+s9))
@@ -80,12 +81,11 @@ def printMatrix(M):
 
 def TN(piVector,p,q):
     v = np.zeros((4,4))
-    alfaK = p
     piK = [piVector[0]+piVector[2],piVector[1]+piVector[3]]*2
     for i in range(4):
         for j in range(4):
-            v[i][j] = (alfaK*q*(1.0 if (i==j) else 0) \
-                       + q*(1.0-alfaK)*piVector[j]*(1.0 if ((i%2)==(j%2)) else 0)\
+            v[i][j] = (p*q*(1.0 if (i==j) else 0) \
+                       + q*(1.0-p)*piVector[j]*(1.0 if ((i%2)==(j%2)) else 0)\
                                      /piK[j] \
                        + (1.0-q)*piVector[j])*piVector[i]
     return v
@@ -103,13 +103,12 @@ def calcS5(N,piVector,q):
 def calcS(i,j,piVector,p,q,N):
     y = np.zeros(2)
     z = np.zeros(8)
-    alfaK = p
     piK = [piVector[0]+piVector[2],piVector[1]+piVector[3]]
     #calculate X(i,i)
-    x = q*alfaK*N[i][i]*piVector[i]
+    x = q*p*N[i][i]*piVector[i]
     #calculate Y(-,i)+Y(i,-)
-    y[0] = 2*(q*(1.0-alfaK)*piVector[i]**2/piK[i%2]*N[i][i])
-    y[1] = (q*(1.0-alfaK)*piVector[i]*piVector[j]/piK[i%2])*(N[i][j]+N[j][i])
+    y[0] = 2*(q*(1.0-p)*piVector[i]**2/piK[i%2]*N[i][i])
+    y[1] = (q*(1.0-p)*piVector[i]*piVector[j]/piK[i%2])*(N[i][j]+N[j][i])
     #calculate Z(-,i)+Z(i,-)
     for k in range(4): 
         z[k*2]   = (1.0-q)*piVector[i]*piVector[k]*N[i][k]

@@ -6,12 +6,15 @@ def EM(tolerance):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
-    p,q,r = np.random.rand(3)
+    
     piA,piC,piG,piT = np.random.dirichlet(np.ones(4))   #random values that all add up to 1
     print('piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
     piR = piA+piG
     piY = piC+piT
+    p,q = np.random.rand(2)
+    r = np.exp((piR)/(piY)*np.log(p))
     S = TN([piA,piC,piG,piT],p,q,r)
+    print('sum: ',S.sum())
     NN = np.random.multinomial(10000,np.reshape(S,16))  #values for matrix of transitions
     printMatrix(NN)
 
@@ -21,7 +24,7 @@ def EM(tolerance):
     # C  N[4]  N[5]  N[6]  N[7]
     # G  N[8]  N[9]  N[10] N[11]
     # T  N[12] N[13] N[14] N[15]
-       
+
     piA = initialPi(0,NN)
     piC = initialPi(1,NN)
     piG = initialPi(2,NN)
@@ -55,7 +58,6 @@ def EM(tolerance):
         s11=s4
           
         #M-step
-        r=s1/(s1+s3)
         p=s2/(s2+s4)
         q=(s1+s2+s3+s4)/(s1+s2+s3+s4+s5)        
         piA = (s6*(-s10+s6+s7))/((s6+s7)*(-s10-s11+s6+s7+s8+s9))
@@ -64,6 +66,7 @@ def EM(tolerance):
         piT = (1.0-piA-piC-piG)
         piR=piA+piG
         piY=piC+piT
+        r = np.exp((piR)/(piY)*np.log(p))
         
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
@@ -147,7 +150,8 @@ def initialParameters(piA,piC,piG,piT,N):
 
     p = np.exp(-alfaY*d)
     q = np.exp(-beta*d)
-    r = np.exp(-alfaR*d)
+    r = np.exp((piR)/(piY)*np.log(p))
+    
     return [p,q,r,d]
 
 def calcParameters(piA,piC,piG,piT,p,q,r):
@@ -160,7 +164,7 @@ def calcParameters(piA,piC,piG,piT,p,q,r):
     R = Ts/Tv                                           #transition/transversion ratio
     beta = 1.0/(2.0*piR*piY*(1.0+R))
     alfaR = -np.log(r)/t
-    alfaY = -np.log(p)/t
+    alfaY = (piR/piY)*np.log(p)/t
     rho = alfaR/alfaY
     return [R,t,rho]    
 
