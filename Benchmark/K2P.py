@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import numpy as np
 
 # p = exp(-alpha*t)
