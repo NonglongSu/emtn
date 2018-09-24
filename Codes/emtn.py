@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 import numpy as np
 
@@ -6,22 +7,23 @@ def EM(tolerance):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
-    p,q,r = 0.3,0.3,0.3#np.random.rand(3)
-    piA,piC,piG,piT = 0.25,0.25,0.25,0.25#np.random.dirichlet(np.ones(4))   #random values that all add up to 1
-    print('piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
+    p,q,r = np.random.rand(3)
+    piA,piC,piG,piT = np.random.dirichlet(np.ones(4))   #random values that all add up to 1
+    print('alphaY: ',-np.log(p),' alphaR: ',-np.log(r),'beta: ',-np.log(q),' piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
     piR = piA+piG
     piY = piC+piT
     S = TN([piA,piC,piG,piT],p,q,r)
+    print('sum: ',S.sum(),'\n')
     NN = np.random.multinomial(10000,np.reshape(S,16))  #values for matrix of transitions
     printMatrix(NN)
 
     # N:
     #     A     C     G     T
-    # A  N[0]  N[1]  N[2]  N[3] 
+    # A  N[0]  N[1]  N[2]  N[3]
     # C  N[4]  N[5]  N[6]  N[7]
     # G  N[8]  N[9]  N[10] N[11]
     # T  N[12] N[13] N[14] N[15]
-       
+
     piA = initialPi(0,NN)
     piC = initialPi(1,NN)
     piG = initialPi(2,NN)
@@ -38,7 +40,7 @@ def EM(tolerance):
 
     while convergence > tolerance:
         iteration+=1
-        
+
         #E-step
         S = np.reshape(TN([piA,piC,piG,piT],p,q,r),16)
         N = NN/S
@@ -53,18 +55,18 @@ def EM(tolerance):
         s9=calcS(3,1,[piA,piC,piG,piT],p,q,r,np.reshape(N,(4,4)))
         s10=s3
         s11=s4
-          
+
         #M-step
         r=s1/(s1+s3)
         p=s2/(s2+s4)
-        q=(s1+s2+s3+s4)/(s1+s2+s3+s4+s5)        
+        q=(s1+s2+s3+s4)/(s1+s2+s3+s4+s5)
         piA = (s6*(-s10+s6+s7))/((s6+s7)*(-s10-s11+s6+s7+s8+s9))
         piC = (s8*(-s11+s8+s9))/((s8+s9)*(-s10-s11+s6+s7+s8+s9))
         piG = (s7*(s10-s6-s7))/((s6+s7)*(s10+s11-s6-s7-s8-s9))
         piT = (1.0-piA-piC-piG)
         piR=piA+piG
         piY=piC+piT
-        
+
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
         logLnew=logLikelihood([piA,piC,piG,piT],p,q,r,NN)
@@ -74,7 +76,18 @@ def EM(tolerance):
         convergence = np.absolute(logLnew-logLold)
         print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t =',t,' rho= ',rho)
         logLold=logLnew
-  
+    piR = piA + piG
+    piY = piC + piT
+    Ts = -2.0*np.log(r)*piA*piG/piR - 2.0*np.log(p)*piC*piT/piY \
+        -np.log(q)*(2.0*piA*piG + 2.0*piC*piT)              #rate of transitions
+    Tv = -2*np.log(q)*piR*piY                              #rate of transversions
+    t = Ts + Tv
+    R = Ts/Tv                                           #transition/transversion ratio
+    beta = 1.0/(2.0*piR*piY*(1.0+R))
+    alfaR = -np.log(r)/t
+    alfaY = -np.log(p)/t
+    print('alphaR: ',alfaR,' alphaY: ',alfaY,' beta: ',beta)    
+ 
 def printMatrix(M):
     print('\n',M[0],M[1],M[2],M[3],'\n',M[4],M[5],M[6],M[7],'\n', \
       M[8],M[9],M[10],M[11],'\n',M[12],M[13],M[14],M[15],'\n')
@@ -112,7 +125,7 @@ def calcS(i,j,piVector,p,q,r,N):
     y[0] = 2*(q*(1.0-alfaK[i])*piVector[i]**2/piK[i%2]*N[i][i])
     y[1] = (q*(1.0-alfaK[i])*piVector[i]*piVector[j]/piK[i%2])*(N[i][j]+N[j][i])
     #calculate Z(-,i)+Z(i,-)
-    for k in range(4): 
+    for k in range(4):
         z[k*2]   = (1.0-q)*piVector[i]*piVector[k]*N[i][k]
         z[k*2+1] = (1.0-q)*piVector[k]*piVector[i]*N[k][i]
     return y.sum() + z.sum() + x
@@ -162,7 +175,7 @@ def calcParameters(piA,piC,piG,piT,p,q,r):
     alfaR = -np.log(r)/t
     alfaY = -np.log(p)/t
     rho = alfaR/alfaY
-    return [R,t,rho]    
+    return [R,t,rho]
 
 
 tolerance = np.power(10.0,-12)

@@ -1,19 +1,25 @@
 #!/usr/bin/python3
 
 import numpy as np
+import sys
 
 # p = exp(-alpha*t)
 # q = exp(-beta*t)
 
-def EM(tolerance):
+import base_counting
+
+def EM(tolerance,Nraw):
     #randonmly generated coefficients
-    p,q = np.random.rand(2)
-    ProbM = K2P(p,q)
-    Nraw = np.random.multinomial(10000,np.reshape(ProbM,16))    #reshape takes a 1D array as input
+    ##p,q = np.random.rand(2)
+    ##ProbM = K2P(p,q)
+    ##Nraw = np.random.multinomial(10000,np.reshape(ProbM,16))    #reshape takes a 1D array as input
     Nraw = np.reshape(Nraw,(4,4))
+    print(Nraw)
     
     #initialParam
     p,q,t = intialParam(Nraw)
+    print('initial: p=',p,' q=',q)
+
     iteration = 0
     convergence = np.inf
     logLold = -np.inf
@@ -45,6 +51,12 @@ def EM(tolerance):
         convergence = np.absolute(logLnew-logLold)
         print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
         logLold = logLnew
+    alpha_t = -np.log(p)
+    beta_t = -np.log(q)
+    t = alpha_t + 2*beta_t
+    alpha = alpha_t / t
+    beta = beta_t / t
+    print('alphat: ',alpha_t,' betat: ',beta_t,' alpha: ',alpha,' beta: ',beta)
 
 def K2P(p,q):
     v = np.zeros((4,4))
@@ -65,7 +77,7 @@ def intialParam(N):
     d = -0.5*np.log(w1)-0.25*np.log(w2)
     R = (-0.5*np.log(w1)+0.25*np.log(w2))/(-0.5*np.log(w2))
     alpha = R/(R+1)
-    beta = 0.5*1/(R+1)
+    beta = 0.5*(1/(R+1))
     p = np.exp(-alpha*d)
     q = np.exp(-beta*d)
     return [p,q,d]
@@ -82,5 +94,13 @@ def calcParam(p,q):
     R = alpha/(2*beta)
     return [R,t]
 
+def readFreqMatrix(file1,file2):
+    freq = base_counting.base_count(file1,file2)
+    freq = list(map(int,freq))
+    N = np.reshape(freq,(4,4))
+    for i in range(0,4):
+        print(N[:,i].sum() + N[i,:].sum())
+    return freq
+
 tol = np.power(10.0,-12)
-EM(tol)
+EM(tol,readFreqMatrix(sys.argv[1],sys.argv[2]))
