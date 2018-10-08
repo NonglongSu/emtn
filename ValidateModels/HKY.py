@@ -11,24 +11,6 @@ def EM(tolerance, NN):
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
     
-    piA,piC,piG,piT = np.random.dirichlet(np.ones(4))   #random values that all add up to 1
-    print('piA ',piA,', piC ',piC,', piG ',piG,', piT ',piT)
-    piR = piA+piG
-    piY = piC+piT
-    p,q = np.random.rand(2)
-    r = np.exp((piR)/(piY)*np.log(p))
-    S = TN([piA,piC,piG,piT],p,q,r)
-    print('sum: ',S.sum())
-    #NN = np.random.multinomial(10000,np.reshape(S,16))  #values for matrix of transitions
-    printMatrix(NN)
-
-    # N:
-    #     A     C     G     T
-    # A  N[0]  N[1]  N[2]  N[3] 
-    # C  N[4]  N[5]  N[6]  N[7]
-    # G  N[8]  N[9]  N[10] N[11]
-    # T  N[12] N[13] N[14] N[15]
-
     piA = initialPi(0,NN)
     piC = initialPi(1,NN)
     piG = initialPi(2,NN)
@@ -52,6 +34,7 @@ def EM(tolerance, NN):
         s1=q*r*(N[0]*piA+N[10]*piG)
         s2=q*p*(N[5]*piC+N[15]*piT)
         s3=q*(1.0-r)*((piA**2*N[0]+piG**2*N[10])+piA*piG*(N[2]+N[8]))/piR
+
         s4=q*(1.0-p)*((piC**2*N[5]+piT**2*N[15])+piC*piT*(N[7]+N[13]))/piY
         s5=calcS5(np.reshape(N,(4,4)),[piA,piC,piG,piT],q)
         s6=calcS(0,2,[piA,piC,piG,piT],p,q,r,np.reshape(N,(4,4)))
@@ -62,6 +45,7 @@ def EM(tolerance, NN):
         s11=s4
           
         #M-step
+        r=s1/(s1+s3)
         p=s2/(s2+s4)
         q=(s1+s2+s3+s4)/(s1+s2+s3+s4+s5)        
         piA = (s6*(-s10+s6+s7))/((s6+s7)*(-s10-s11+s6+s7+s8+s9))
@@ -70,7 +54,6 @@ def EM(tolerance, NN):
         piT = (1.0-piA-piC-piG)
         piR=piA+piG
         piY=piC+piT
-        r = np.exp((piR)/(piY)*np.log(p))
         
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
@@ -81,12 +64,8 @@ def EM(tolerance, NN):
         convergence = np.absolute(logLnew-logLold)
         print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t =',t,' rho= ',rho)
         logLold=logLnew
-    print('p ',p,' q: ',q,' r: ',r,' piA: ',piA,' piC: ',piC,' piG: ',piG,' piT: ',piT)
+    postprints(r,p,q,piA,piC,piG,piT)
   
-def printMatrix(M):
-    print('\n',M[0],M[1],M[2],M[3],'\n',M[4],M[5],M[6],M[7],'\n', \
-      M[8],M[9],M[10],M[11],'\n',M[12],M[13],M[14],M[15],'\n')
-
 def TN(piVector,p,q,r):
     v = np.zeros((4,4))
     alfaK = [r,p]*2
@@ -139,18 +118,18 @@ def initialParameters(piA,piC,piG,piT,N):
     p1 = (N[0][2]+N[2][0])/N.sum()
     p2 = (N[1][3]+N[3][1])/N.sum()
     q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/N.sum()
-    w1 = 1-p1/k1-q/2*piR
-    w2 = 1-p2/k2-q/2*piY
-    w3 = 1-q/2*piR*piY
+    w1 = 1.0-p1/k1-q/2*piR
+    w2 = 1.0-p2/k2-q/2*piY
+    w3 = 1.0-q/2*piR*piY
 
     d = -k1*np.log(w1)-k2*np.log(w2)-k3*np.log(w3)
     s = -k1*np.log(w1)-k2*np.log(w2)-(k3-2*piR*piY)*np.log(w3)
     v = -2*piR*piY*np.log(w3)
     R = s/v
-    rho = 1
+    rho = 1.0
 
-    beta = 1/(2*piR*piY*(1+R))
-    alfaY = (piR*piY*R-piA*piG-piC*piT)/(2*(1+R)*(piY*piA*piG*rho+piR*piC*piT))
+    beta = 0.5/(piR*piY*(1.0+R))
+    alfaY = (piR*piY*R-piA*piG-piC*piT)/(2*(1.0+R)*(piY*piA*piG*rho+piR*piC*piT))
     alfaR = rho*alfaY
 
     p = np.exp(-alfaY*d)
@@ -167,9 +146,9 @@ def calcParameters(piA,piC,piG,piT,p,q,r):
     Tv = -2*np.log(q)*piR*piY                              #rate of transversions
     t = Ts + Tv
     R = Ts/Tv                                           #transition/transversion ratio
-    beta = 1.0/(2.0*piR*piY*(1.0+R))
+    beta = 0.5/(piR*piY*(1.0+R))
     alfaR = -np.log(r)/t
-    alfaY = (piR/piY)*np.log(p)/t
+    alfaY = -np.log(p)/t
     rho = alfaR/alfaY
     return [R,t,rho]    
 
@@ -177,6 +156,32 @@ def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
     freq = list(map(int,freq))
     return freq
+
+def postprints(r,p,q,piA,piC,piG,piT):
+     piR = piA + piG
+     piY = piC + piT
+     Ts = -2.0*np.log(r)*piA*piG/piR - 2.0*np.log(p)*piC*piT/piY \
+         -np.log(q)*(2.0*piA*piG + 2.0*piC*piT)              #rate of transitions
+     Tv = -2*np.log(q)*piR*piY                              #rate of transversions
+     t = Ts + Tv
+     R = Ts/Tv                                           #transition/transversion ratio
+     alfaY = -np.log(p)/t
+     alfaR = -np.log(r)/t
+     beta = 0.5/(piR*piY*(1.0+R))
+     print('alfaR: ',alfaR,' alfaY: ',alfaY,' beta: ',beta,)
+     print(' pi[ACGT]: ',piA,' ',piC,' ',piG,' ',piT)
+     rate = calcRate(piA,piC,piG,piT,alfaR,alfaY,beta)
+     print(rate)
+
+def calcRate(piA,piC,piG,piT,alfaR,alfaY,beta):
+     piR = piA + piG
+     piY = piC + piT
+     rate = piA*(alfaR*piG/piR+beta*piG + beta*piC + beta*piT) \
+          + piG*(alfaR*piA/piR+beta*piA + beta*piC + beta*piT) \
+          + piC*(beta*piA + beta*piG + alfaY*piT/piY+beta*piT) \
+          + piT*(beta*piA + beta*piG + alfaY*piC/piY+beta*piC)
+     return rate
+
 
 tolerance = np.power(10.0,-12)
 EM(tolerance,readFreqMatrix(sys.argv[1],sys.argv[2]))

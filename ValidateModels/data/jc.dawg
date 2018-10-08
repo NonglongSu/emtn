@@ -1,8 +1,8 @@
 # Example: Simulate DNA evolution along a tree
 # Identical model as basic-dna.dawg
 
-Tree.Tree = "(A:0.1)B;"
+Tree.Tree = "(A:0.3)B;"
 Subst.Model = "JC"
-Root.Length = 10000
+Root.Length = 100000
 Sim.Reps = 1
 

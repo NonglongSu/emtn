@@ -9,16 +9,8 @@ import sys
 import base_counting
 
 def EM(tolerance,Nraw):
-    #randonmly generated coefficients
-    ##p,q = np.random.rand(2)
-    ##ProbM = K2P(p,q)
-    ##Nraw = np.random.multinomial(10000,np.reshape(ProbM,16))    #reshape takes a 1D array as input
-    Nraw = np.reshape(Nraw,(4,4))
-    print(Nraw)
-    
     #initialParam
     p,q,t = intialParam(Nraw)
-    print('initial: p=',p,' q=',q)
 
     iteration = 0
     convergence = np.inf
@@ -51,12 +43,7 @@ def EM(tolerance,Nraw):
         convergence = np.absolute(logLnew-logLold)
         print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
         logLold = logLnew
-    alpha_t = -np.log(p)
-    beta_t = -np.log(q)
-    t = alpha_t + 2*beta_t
-    alpha = alpha_t / t
-    beta = beta_t / t
-    print('alphat: ',alpha_t,' betat: ',beta_t,' alpha: ',alpha,' beta: ',beta)
+    postprints(p,q)
 
 def K2P(p,q):
     v = np.zeros((4,4))
@@ -86,21 +73,44 @@ def logLikelihood(p,q,M):
     return (np.log(K2P(p,q))*M).sum()
 
 def calcParam(p,q):
-    alpha_t = -np.log(p)
-    beta_t = -np.log(q)
-    t = alpha_t + 2*beta_t
-    alpha = alpha_t / t
-    beta = beta_t / t
-    R = alpha/(2*beta)
+    Ts = -2.0*np.log(p)*0.125 - 2.0*np.log(p)*0.125 \
+         -np.log(q)*(0.25)              #rate of transitions
+    Tv = -2*np.log(q)*0.25                              #rate of transversions
+    t = Ts + Tv
+    R = Ts/Tv                                           #transition/transversion ratio
+    alfa = -np.log(p)/t
+    beta = 0.5/(0.25*(1.0+R))
+    print('alfa: ',alfa,' beta: ',beta,)
     return [R,t]
 
+def postprints(p,q,piA=0.25,piC=0.25,piG=0.25,piT=0.25):
+    piR = piA + piG
+    piY = piC + piT
+    Ts = -2.0*np.log(p)*piA*piG/piR - 2.0*np.log(p)*piC*piT/piY \
+         -np.log(q)*(2.0*piA*piG + 2.0*piC*piT)              #rate of transitions
+    Tv = -2*np.log(q)*piR*piY                              #rate of transversions
+    t = Ts + Tv
+    R = Ts/Tv                                           #transition/transversion ratio
+    alfa = -np.log(p)/t
+    beta = 0.5/(piR*piY*(1.0+R))
+    print('alfa: ',alfa,' beta: ',beta,)
+    rate = calcRate(piA,piC,piG,piT,alfa,beta)
+    print('Rate: ',rate)
+ 
 def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
     freq = list(map(int,freq))
-    N = np.reshape(freq,(4,4))
-    for i in range(0,4):
-        print(N[:,i].sum() + N[i,:].sum())
-    return freq
+    return np.reshape(freq,(4,4))
+ 
+def calcRate(piA,piC,piG,piT,alfa,beta):
+    piR = piA + piG
+    piY = piC + piT
+    rate = piA*(alfa*piG/piR+beta*piG + beta*piC + beta*piT) \
+        + piG*(alfa*piA/piR+beta*piA + beta*piC + beta*piT) \
+        + piC*(beta*piA + beta*piG + alfa*piT/piY+beta*piT) \
+        + piT*(beta*piA + beta*piG + alfa*piC/piY+beta*piC)
+    #print('rate: ',alfa*0.5 + beta*0.75)
+    return rate
 
 tol = np.power(10.0,-12)
 EM(tol,readFreqMatrix(sys.argv[1],sys.argv[2]))

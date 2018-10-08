@@ -10,21 +10,18 @@ import base_counting
 
 def EM(tolerance, Nraw):
     #randonmly generated coefficients
-    p = np.random.rand(1)
-    ProbM = K2P(p)
-    #Nraw = np.random.multinomial(10000,np.reshape(ProbM,16))    #reshape takes a 1D array as input
-    Nraw = np.reshape(Nraw,(4,4))
     
     #initialParam
     p,t = intialParam(Nraw)
     iteration = 0
     convergence = np.inf
     logLold = -np.inf
+    ProbM = JC(p)
 
     while(convergence > tolerance):
         iteration += 1
 
-        ProbM = K2P(p)
+        ProbM = JC(p)
         N = Nraw/ProbM
 
         #E-step
@@ -36,27 +33,31 @@ def EM(tolerance, Nraw):
         
         #M-step
         p = (2.0*s1+s2)/(2.0*s1+2.0*s2+s3)
+        ## TODO
+        #p = (s1)/(s1+s2)
 
         #calculation of R,t
         R,t = calcParam(p)
         logLnew = logLikelihood(p,Nraw)
         if(logLold > logLnew):
+            print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
             print('log Likelihood error')
+            print(logLold-logLnew)
             break
         
         convergence = np.absolute(logLnew-logLold)
         print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
         logLold = logLnew
     alpha_t = -np.log(p)
-    t = alpha_t + 2.0*alpha_t
+    t = 1.25*alpha_t
     alpha = alpha_t / t
-    print('alpha: ',alpha)
+    print('Rate: ',calcRate(alpha))
 
-def K2P(p):
+def JC(p):
     v = np.zeros((4,4))
     for i in range(4):
         for j in range(4):
-            v[i][j] = (p**2*(1.0 if (i==j) else 0) \
+            v[i][j] = (p**2.0*(1.0 if (i==j) else 0) \
                       + p*(1.0-p)*0.5*(1.0 if ((i%2)==(j%2)) else 0) \
                       + (1.0-p)*0.25)*0.25
     return v
@@ -75,11 +76,11 @@ def intialParam(N):
     return [p,d]
 
 def logLikelihood(p,M):
-    return (np.log(K2P(p))*M).sum()
+    return (np.log(JC(p))*M).sum()
 
 def calcParam(p):
     alpha_t = -np.log(p)
-    t = alpha_t + 2.0*alpha_t
+    t = 1.25*alpha_t
     alpha = alpha_t / t
     R = alpha/(2.0*alpha)
     return [R,t]
@@ -88,10 +89,11 @@ def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
     freq = list(map(int,freq))
     N = np.reshape(freq,(4,4))
-    for i in range(0,4):
-        print(N[:,i].sum()+N[i,:].sum())
     print(N)
-    return freq
+    return N
+
+def calcRate(alpha):
+    return 1.25*alpha
 
 tol = np.power(10.0,-12)
 EM(tol,readFreqMatrix(sys.argv[1],sys.argv[2]))

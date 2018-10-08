@@ -21,6 +21,7 @@ TN: tn.fasta tn.1.fasta tn.2.fasta tn
 #run HKY model with dawg output
 jc: jc.1.fasta jc.2.fasta
 	python3 ../JC.py jc.1.fasta jc.2.fasta 
+	make -s clean
 
 hky: hky.1.fasta hky.2.fasta
 	python3 ../HKY.py hky.1.fasta hky.2.fasta
@@ -28,11 +29,13 @@ hky: hky.1.fasta hky.2.fasta
 
 k2p: k2p.1.fasta k2p.2.fasta
 	python3 ../K2P.py k2p.1.fasta k2p.2.fasta
+	make -s clean
 
 tn: tn.1.fasta tn.2.fasta
 	python3 ../TN.py tn.1.fasta tn.2.fasta
-	#make -s clean
+	make -s clean
 
 #clean files
 clean:
 	rm -rf *.fasta ../__pycache__
+
