@@ -4,5 +4,5 @@
 Tree.Tree = "(A:0.3)B;"
 Subst.Model = "JC"
 Root.Length = 100000
-Sim.Reps = 1
+Sim.Reps = 3
 

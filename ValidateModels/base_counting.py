@@ -1,5 +1,6 @@
-#!/bin/python3
-# Generate matrix frequencies from to sequences
+#!/usr/bin/python3
+
+# Generate matrix counts from sequences
 
 import sys
 
@@ -20,10 +21,6 @@ def base_count(file1,file2):
     if(len(seq1) != len(seq2)):
         print("sequences have different length!")
 	
-    # remove newlines
-    seq1 = list(filter(lambda b: b != '\n' and b != ' ', seq1))
-    seq2 = list(filter(lambda b: b != '\n' and b != ' ', seq2))
-    
     # initialize frequency matrix
     freq = {'AA':0, 'AC':0, 'AG':0, 'AT':0, 'CA':0, 'CC':0, 'CG':0, 'CT':0, 'GA':0, 'GC':0, 'GG':0, 'GT':0, 'TA':0, 'TC':0, 'TG':0, 'TT':0}
     
@@ -34,3 +31,4 @@ def base_count(file1,file2):
     #print(list(freq.values()))
     
     return(list(freq.values()))
+

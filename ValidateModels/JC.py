@@ -27,27 +27,27 @@ def EM(tolerance, Nraw):
         #E-step
         x_ = N[0][0]+N[1][1]+N[2][2]+N[3][3]        #diagonal of matrix (no change)
         y_ = x_ + N[0][2]+N[2][0]+N[1][3]+N[3][1]   #(no change) + transitions
-        s1 = p**2.0*(x_)*0.25
+        s1 = np.power(p,2)*(x_)*0.25
         s2 = p*(1.0-p)*(y_)*0.125
         s3 = (1.0-p)*N.sum()*0.0625
         
         #M-step
         p = (2.0*s1+s2)/(2.0*s1+2.0*s2+s3)
         ## TODO
-        #p = (s1)/(s1+s2)
 
         #calculation of R,t
         R,t = calcParam(p)
         logLnew = logLikelihood(p,Nraw)
         if(logLold > logLnew):
-            print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
+            print(iteration,'log-L diff= ',logLw-logLold,' R= ',R,' t= ',t)
             print('log Likelihood error')
             print(logLold-logLnew)
             break
-        
+
         convergence = np.absolute(logLnew-logLold)
-        print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t= ',t)
+        print(iteration,'log-L diff= ',logLnew-logLold,' t= ',t)
         logLold = logLnew
+
     alpha_t = -np.log(p)
     t = 1.25*alpha_t
     alpha = alpha_t / t
@@ -57,7 +57,7 @@ def JC(p):
     v = np.zeros((4,4))
     for i in range(4):
         for j in range(4):
-            v[i][j] = (p**2.0*(1.0 if (i==j) else 0) \
+            v[i][j] = (np.power(p,2)*(1.0 if (i==j) else 0) \
                       + p*(1.0-p)*0.5*(1.0 if ((i%2)==(j%2)) else 0) \
                       + (1.0-p)*0.25)*0.25
     return v
@@ -96,4 +96,5 @@ def calcRate(alpha):
     return 1.25*alpha
 
 tol = np.power(10.0,-12)
+
 EM(tol,readFreqMatrix(sys.argv[1],sys.argv[2]))

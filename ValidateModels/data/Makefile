@@ -14,9 +14,9 @@ TN: tn.fasta tn.1.fasta tn.2.fasta tn
 #generate frequencies matrix from sequences
 #	sed gets odd/even lines then grep gets only DNA sequences
 %.1.fasta: %.fasta
-	sed -n '3~3p' $< | grep -o '\ [ACGT]\+' > $@
+	grep -o '\ [ACGT]\+' $< | sed -n '1~2p' | tr -d '\n '> $@
 %.2.fasta: %.fasta 
-	sed -n '4~3p' $< | grep -o '\ [ACGT]\+' > $@
+	grep -o '\ [ACGT]\+' $< | sed -n '2~2p' | tr -d '\n '> $@
 
 #run HKY model with dawg output
 jc: jc.1.fasta jc.2.fasta
