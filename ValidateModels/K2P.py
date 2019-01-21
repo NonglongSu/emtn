@@ -27,7 +27,7 @@ def EM(tolerance,Nraw):
         y_ = x_ + N[0][2]+N[2][0]+N[1][3]+N[3][1]   #(no change) + transitions
         s1 = p*q*(x_)*0.25
         s2 = q*(1.0-p)*(y_)*0.125
-        s3 = (1.0-q)*N.sum()*0.0625
+        s3 = (1.0-q)*np.sum(N)*0.0625
         
         #M-step
         p = s1/(s1+s2)
@@ -56,8 +56,8 @@ def K2P(p,q):
 
 def intialParam(N):
     #auxiliar constants
-    P = (N[0][2]+N[1][3]+N[2][0]+N[3][1])/N.sum()
-    Q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/N.sum()
+    P = (N[0][2]+N[1][3]+N[2][0]+N[3][1])/np.sum(N)
+    Q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/np.sum(N)
     w1 = 1-2*P-Q
     w2 = 1-2*Q
     #calculation
@@ -70,7 +70,7 @@ def intialParam(N):
     return [p,q,d]
 
 def logLikelihood(p,q,M):
-    return (np.log(K2P(p,q))*M).sum()
+    return np.sum((np.log(K2P(p,q))*M))
 
 def calcParam(p,q):
     Ts = -2.0*np.log(p)*0.125 - 2.0*np.log(p)*0.125 \

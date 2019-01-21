@@ -86,14 +86,14 @@ def TN(piVector,p,q,r):
     return v
 
 def logLikelihood(piVector,p,q,r,M):
-    return (np.log(TN(piVector,p,q,r))*M).sum()
+    return np.sum(np.log(TN(piVector,p,q,r))*M)
 
 def calcS5(N,piVector,q):
     v = np.zeros((4,4))
     for i in range(4):
         for j in range(4):
             v[i][j] = (1.0-q)*piVector[j]*piVector[i]*N[i][j]
-    return v.sum()
+    return np.sum(v)
 
 def calcS(i,j,piVector,p,q,r,N):
     y = np.zeros(2)
@@ -109,10 +109,10 @@ def calcS(i,j,piVector,p,q,r,N):
     for k in range(4):
         z[k*2]   = (1.0-q)*piVector[i]*piVector[k]*N[i][k]
         z[k*2+1] = (1.0-q)*piVector[k]*piVector[i]*N[k][i]
-    return y.sum() + z.sum() + x
+    return np.sum(y) + np.sum(z) + x
 
 def initialPi(i,N):
-    return (N[:][i].sum() + N[i][:].sum())/N.sum()
+    return (np.sum(N[:][i]) + np.sum(N[i][:]))/np.sum(N)
 
 def initialParameters(piA,piC,piG,piT,N):
     piR = piA+piG
@@ -121,9 +121,9 @@ def initialParameters(piA,piC,piG,piT,N):
     k1 = 2.0*piA*piG/piR
     k2 = 2.0*piT*piC/piY
     k3 = 2.0*(piR*piY-piA*piG*piY/piR-piT*piC*piR/piY)
-    p1 = (N[0][2]+N[2][0])/N.sum()
-    p2 = (N[1][3]+N[3][1])/N.sum()
-    q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/N.sum()
+    p1 = (N[0][2]+N[2][0])/np.sum(N)
+    p2 = (N[1][3]+N[3][1])/np.sum(N)
+    q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/np.sum(N)
     w1 = 1.0-p1/k1-q/2.0*piR
     w2 = 1.0-p2/k2-q/2.0*piY
     w3 = 1.0-q/2.0*piR*piY

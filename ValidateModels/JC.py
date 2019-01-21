@@ -5,8 +5,7 @@ import sys
 
 import base_counting
 
-# alpha == beta
-# p = exp(-alpha*t)
+# p = exp(-(4/3)*alpha*t)
 
 def EM(tolerance, Nraw):
     #randonmly generated coefficients
@@ -17,49 +16,47 @@ def EM(tolerance, Nraw):
     convergence = np.inf
     logLold = -np.inf
     ProbM = JC(p)
+    print(np.sum(ProbM))
 
     while(convergence > tolerance):
+        print('convergence: ',convergence,', tolerance: ',tolerance)
         iteration += 1
 
         ProbM = JC(p)
         N = Nraw/ProbM
 
         #E-step
-        x_ = N[0][0]+N[1][1]+N[2][2]+N[3][3]        #diagonal of matrix (no change)
-        y_ = x_ + N[0][2]+N[2][0]+N[1][3]+N[3][1]   #(no change) + transitions
-        s1 = np.power(p,2)*(x_)*0.25
-        s2 = p*(1.0-p)*(y_)*0.125
-        s3 = (1.0-p)*N.sum()*0.0625
+        x = N[0][0]+N[1][1]+N[2][2]+N[3][3]        #diagonal of matrix (no change)
+        s1 = p*(x)*0.25
+        s2 = (1.0-p)*np.sum(N)*0.0625
         
         #M-step
-        p = (2.0*s1+s2)/(2.0*s1+2.0*s2+s3)
-        ## TODO
+        p = (s1)/(s1+s2)
 
         #calculation of R,t
-        R,t = calcParam(p)
+        t = calcParam(p)
         logLnew = logLikelihood(p,Nraw)
         if(logLold > logLnew):
-            print(iteration,'log-L diff= ',logLw-logLold,' R= ',R,' t= ',t)
+            print(iteration,'log-L diff= ',logLnew-logLold,' t= ',t)
             print('log Likelihood error')
             print(logLold-logLnew)
             break
 
         convergence = np.absolute(logLnew-logLold)
-        print(iteration,'log-L diff= ',logLnew-logLold,' t= ',t)
+        print(iteration,'log-L diff= ',convergence,'logL: ',logLnew,' t= ',t)
         logLold = logLnew
 
     alpha_t = -np.log(p)
-    t = 1.25*alpha_t
-    alpha = alpha_t / t
-    print('Rate: ',calcRate(alpha))
+    t = calcParam(p)
+    alpha = alpha_t*(3/(4*t))
+    print('Rate: ',calcRate(alpha),' p: ',p,' alpha: ',alpha)
 
 def JC(p):
     v = np.zeros((4,4))
     for i in range(4):
         for j in range(4):
-            v[i][j] = (np.power(p,2)*(1.0 if (i==j) else 0) \
-                      + p*(1.0-p)*0.5*(1.0 if ((i%2)==(j%2)) else 0) \
-                      + (1.0-p)*0.25)*0.25
+            v[i][j] = (p*(1.0 if (i==j) else 0) \
+                      +0.25*(1.0-p))*0.25
     return v
 
 def intialParam(N):
@@ -72,18 +69,15 @@ def intialParam(N):
     d = -0.5*np.log(w1)-0.25*np.log(w2)
     R = 0.5
     alpha = R/(R+1.0)
-    p = np.exp(-alpha*d)
+    p = np.exp(-(4.0/3.0)*alpha*d)
     return [p,d]
 
 def logLikelihood(p,M):
-    return (np.log(JC(p))*M).sum()
+    return np.sum(np.log(JC(p))*M)
 
 def calcParam(p):
-    alpha_t = -np.log(p)
-    t = 1.25*alpha_t
-    alpha = alpha_t / t
-    R = alpha/(2.0*alpha)
-    return [R,t]
+    t = -0.75*np.log(p)
+    return t
 
 def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
@@ -93,7 +87,7 @@ def readFreqMatrix(file1,file2):
     return N
 
 def calcRate(alpha):
-    return 1.25*alpha
+    return alpha
 
 tol = np.power(10.0,-12)
 

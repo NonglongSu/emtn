@@ -6,7 +6,6 @@ import sys
 import base_counting
 
 def EM(tolerance, NN):
-    #randomly generate coefficients
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
@@ -29,7 +28,7 @@ def EM(tolerance, NN):
         iteration+=1
         
         #E-step
-        S = np.reshape(TN([piA,piC,piG,piT],p,q,r),16)
+        S = np.reshape(HKY([piA,piC,piG,piT],p,q,r),16)
         N = NN/S
         s1=q*r*(N[0]*piA+N[10]*piG)
         s2=q*p*(N[5]*piC+N[15]*piT)
@@ -66,7 +65,7 @@ def EM(tolerance, NN):
         logLold=logLnew
     postprints(r,p,q,piA,piC,piG,piT)
   
-def TN(piVector,p,q,r):
+def HKY(piVector,p,q,r):
     v = np.zeros((4,4))
     alfaK = [r,p]*2
     piK = [piVector[0]+piVector[2],piVector[1]+piVector[3]]*2
@@ -79,14 +78,14 @@ def TN(piVector,p,q,r):
     return v
 
 def logLikelihood(piVector,p,q,r,M):
-    return (np.log(np.reshape(TN(piVector,p,q,r),16))*M).sum()
+    return np.sum((np.log(np.reshape(HKY(piVector,p,q,r),16))*M))
 
 def calcS5(N,piVector,q):
     v = np.zeros((4,4))
     for i in range(4):
         for j in range(4):
             v[i][j] = (1.0-q)*piVector[j]*piVector[i]*N[i][j]
-    return v.sum()
+    return np.sum(v)
 
 def calcS(i,j,piVector,p,q,r,N):
     y = np.zeros(2)
@@ -102,11 +101,11 @@ def calcS(i,j,piVector,p,q,r,N):
     for k in range(4): 
         z[k*2]   = (1.0-q)*piVector[i]*piVector[k]*N[i][k]
         z[k*2+1] = (1.0-q)*piVector[k]*piVector[i]*N[k][i]
-    return y.sum() + z.sum() + x
+    return np.sum(y) + np.sum(z) + x
 
 def initialPi(i,M):
     N = np.reshape(M,(4,4))
-    return (N[:][i].sum() + N[i][:].sum())/N.sum()
+    return (np.sum(N[:][i]) + np.sum(N[i][:]))/np.sum(N)
 
 def initialParameters(piA,piC,piG,piT,N):
     piR = piA+piG
@@ -115,9 +114,9 @@ def initialParameters(piA,piC,piG,piT,N):
     k1 = 2*piA*piG/piR
     k2 = 2*piT*piC/piY
     k3 = 2*(piR*piY-piA*piG*piY/piR-piT*piC*piR/piY)
-    p1 = (N[0][2]+N[2][0])/N.sum()
-    p2 = (N[1][3]+N[3][1])/N.sum()
-    q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/N.sum()
+    p1 = (N[0][2]+N[2][0])/np.sum(N)
+    p2 = (N[1][3]+N[3][1])/np.sum(N)
+    q = (N[0][1]+N[0][3]+N[1][0]+N[1][2]+N[2][1]+N[2][3]+N[3][0]+N[3][2])/np.sum(N)
     w1 = 1.0-p1/k1-q/2*piR
     w2 = 1.0-p2/k2-q/2*piY
     w3 = 1.0-q/2*piR*piY
