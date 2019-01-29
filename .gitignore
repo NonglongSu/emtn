@@ -5,6 +5,8 @@
 
 # Non-version folders
 Documents
+ValidateModels/tags
+ValidateModels/nim
 
 #Non-Tex documents
 *.pdf
