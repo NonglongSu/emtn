@@ -16,10 +16,10 @@ def EM(tolerance, Nraw):
     convergence = np.inf
     logLold = -np.inf
     ProbM = JC(p)
-    print(np.sum(ProbM))
+    #print(np.sum(ProbM))
+    error = False
 
     while(convergence > tolerance):
-        print('convergence: ',convergence,', tolerance: ',tolerance)
         iteration += 1
 
         ProbM = JC(p)
@@ -37,19 +37,21 @@ def EM(tolerance, Nraw):
         t = calcParam(p)
         logLnew = logLikelihood(p,Nraw)
         if(logLold > logLnew):
-            print(iteration,'log-L diff= ',logLnew-logLold,' t= ',t)
-            print('log Likelihood error')
-            print(logLold-logLnew)
+            #print(iteration,'log-L diff= ',logLnew-logLold,' t= ',t)
+            print('log Likelihood error. Diff: ', logLold-logLnew)
+            error = True
             break
 
         convergence = np.absolute(logLnew-logLold)
-        print(iteration,'log-L diff= ',convergence,'logL: ',logLnew,' t= ',t)
+        #print(iteration,'log-L diff= ',convergence,'logL: ',logLnew,' t= ',t)
         logLold = logLnew
 
-    alpha_t = -np.log(p)
-    t = calcParam(p)
-    alpha = alpha_t*(3/(4*t))
-    print('Rate: ',calcRate(alpha),' p: ',p,' alpha: ',alpha)
+    if(not error):
+        alpha_t = -np.log(p)
+        t = calcParam(p)
+        alpha = alpha_t*(3/(4*t))
+        print('Rate: ',calcRate(alpha))
+        print('t=',t)
 
 def JC(p):
     v = np.zeros((4,4))
@@ -83,7 +85,6 @@ def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
     freq = list(map(int,freq))
     N = np.reshape(freq,(4,4))
-    print(N)
     return N
 
 def calcRate(alpha):

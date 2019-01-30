@@ -68,7 +68,7 @@ def EM(tolerance,N_counts):
             print('log Likelihood error')
             break
         convergence = np.absolute(logLnew-logLold)
-        print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t =',t,' rho= ',rho)
+        print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
         logLold=logLnew
 
     postprints(r,p,q,piA,piC,piG,piT)
