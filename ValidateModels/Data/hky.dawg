@@ -3,8 +3,8 @@
 
 Tree.Tree = "(A:0.3)B;"
 Subst.Model = "HKY"
-Subst.Params = 2.0, 1.0 
+Subst.Params = 0.5, 0.25
 Subst.Freqs = 0.3, 0.2, 0.2, 0.3
 Root.Length = 1000000
-Sim.Reps = 1
+Sim.Reps = 3
 

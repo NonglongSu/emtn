@@ -5,7 +5,7 @@ import sys
 
 import base_counting
 
-def EM(tolerance,N_counts):
+def EM_TN(tolerance,N_counts):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
@@ -26,7 +26,7 @@ def EM(tolerance,N_counts):
 
     # estimate initial values for p,q,r,t using TN distance formula
     p,q,r,t = initialParameters(piA,piC,piG,piT,N_counts)
-    print('p,q,r',p,' ',q,' ',r)
+    #print('Initial estimates: p,q,r',p,' ',q,' ',r)
 
     iteration = 0
     convergence = np.inf
@@ -68,10 +68,10 @@ def EM(tolerance,N_counts):
             print('log Likelihood error')
             break
         convergence = np.absolute(logLnew-logLold)
-        print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
+        #print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
         logLold=logLnew
 
-    postprints(r,p,q,piA,piC,piG,piT)
+    return postprints(r,p,q,piA,piC,piG,piT)
 
 def TN(piVector,p,q,r):
     v = np.zeros((4,4))
@@ -167,11 +167,11 @@ def postprints(r,p,q,piA,piC,piG,piT):
     R = Ts/Tv                                           #transition/transversion ratio
     alfaY = -np.log(p)/t
     alfaR = -np.log(r)/t
-    beta = 0.5/(piR*piY*(1.0+R))
-    print('alfaR: ',alfaR,' alfaY: ',alfaY,' beta: ',beta,)
-    print(' pi[ACGT]: ',piA,' ',piC,' ',piG,' ',piT)
+    beta = -np.log(q)/t
     rate = calcRate(piA,piC,piG,piT,alfaR,alfaY,beta)
-    print(rate)
+    #print('alfaR: ',alfaR,' alfaY: ',alfaY,' beta: ',beta,' piA:',piA,' piC: ',\
+    #    piC,' piG: ',piG,' piT ',piT,' Rate: ',rate)
+    return [t,alfaR,alfaY,beta,piA,piC,piG,piT]
 
 def readFreqMatrix(file1,file2):
     freq = base_counting.base_count(file1,file2)
@@ -187,5 +187,9 @@ def calcRate(piA,piC,piG,piT,alfaR,alfaY,beta):
          + piT*(beta*piA + beta*piG + alfaY*piC/piY+beta*piC)
     return rate
 
-tolerance = np.power(10.0,-12)
-EM(tolerance,readFreqMatrix(sys.argv[1],sys.argv[2]))
+def main(args):
+    tolerance = np.power(10.0,-15)
+    return EM_TN(tolerance,readFreqMatrix(args[1],args[2]))
+
+if __name__ == '__main__':
+    main(sys.argv)

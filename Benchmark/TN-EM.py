@@ -30,7 +30,7 @@ def EM(tolerance):
         N = NN/np.reshape(S,16)
         
         s1=q*r*(N[0]*piA+N[10]*piG)
-        s2=q*r*(N[5]*piC+N[15]*piT)
+        s2=q*p*(N[5]*piC+N[15]*piT)
         s3=q*(1-r)*(piA**2/piR*N[0]+piG**2/piR*N[10]+piA*piG/piR*(N[2]+N[8]))
         s4=q*(1-p)*(piC**2/piY*N[5]+piT**2/piY*N[15]+piC*piT/piY*(N[7]+N[13]))
         s5=NN.sum()-(s1+s2+s3+s4)

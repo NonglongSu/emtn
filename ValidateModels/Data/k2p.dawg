@@ -5,5 +5,5 @@ Tree.Tree = "(A:0.3)B;"
 Subst.Model = "K2P"
 Subst.Params = 2.0, 1.0 
 Root.Length = 1000000
-Sim.Reps = 1
+Sim.Reps = 3
 
