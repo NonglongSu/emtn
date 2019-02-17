@@ -42,8 +42,9 @@ hky: hky.1.fasta hky.2.fasta
 	make -s clean
 
 k2p: k2p.1.fasta k2p.2.fasta
-	python3 ../K2P_mod.py $^
-	make -s clean
+	@echo "Running EM"
+	@python3 ../K2P.py $^
+	@make -s clean
 
 tn: tn.1.fasta tn.2.fasta
 	@python3 ../TN.py $^
@@ -59,25 +60,14 @@ clean:
 
 .PHONY: test.all test.jc test.hky test.k2p test.tn clean.tests
 
-distance = 0.2
-root.length = 1000000
-sim.reps = 2
-alpha = 2.0
-alpha2 = 2.0
-beta = 1.0
-piA = 0.3
-piC = 0.2
-piG = 0.3
-piT = 0.2
-
 #test: jc.test hky.test k2p.test tn.test
+
 tn.test:
-	@echo "Testing tn ..."
+	@echo "Testing tn"
 	@python3 ../Tests/test_tn.py
 	@make -s clean
 
-#TODO: create .dawg file for each test
-
-jc.dawg:
-	@echo "Creating jc.dawg..."
-	@bash testing.sh ${distance} ${root.length} ${sim.reps}
+k2p.test:
+	@echo "Testing k2p"
+	@python3 ../Tests/test_k2p.py
+	@make -s clean

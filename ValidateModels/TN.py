@@ -66,6 +66,7 @@ def EM_TN(tolerance,N_counts):
         logLnew=logLikelihood([piA,piC,piG,piT],p,q,r,N_counts)
         if (logLold > logLnew):
             print('log Likelihood error')
+            return 1
             break
         convergence = np.absolute(logLnew-logLold)
         #print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
@@ -189,7 +190,8 @@ def calcRate(piA,piC,piG,piT,alfaR,alfaY,beta):
 
 def main(args):
     tolerance = np.power(10.0,-15)
-    return EM_TN(tolerance,readFreqMatrix(args[1],args[2]))
+    print('t, aR, aY, b, piA, piC, piG, piT')
+    print(np.round(EM_TN(tolerance,readFreqMatrix(args[1],args[2])), decimals = 5))
 
 if __name__ == '__main__':
     main(sys.argv)
