@@ -11,4 +11,7 @@ ValidateModels/nim
 #Non-Tex documents
 *.pdf
 *.txt
-
+*.log
+*.aux
+*.dvi
+*.synctex.gz
