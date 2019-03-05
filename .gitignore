@@ -15,3 +15,7 @@ ValidateModels/nim
 *.aux
 *.dvi
 *.synctex.gz
+
+# bibtex temp files
+*.bbl
+*.blg
