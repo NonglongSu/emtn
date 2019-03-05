@@ -30,9 +30,8 @@ help:
 
 #run HKY model with dawg output
 jc: jc.1.fasta jc.2.fasta
-	@echo -n "Running EM..."
+	@echo -n "Running EM: Jukes Cantor"
 	@python3 ../JC.py $^
-	@echo ".....done"
 	@echo -n "Cleaning files..."
 	@make -s clean
 	@echo ".done"
@@ -50,6 +49,10 @@ tn: tn.1.fasta tn.2.fasta
 	@python3 ../TN.py $^
 	@make -s clean
 
+fisher: tn.1.fasta tn.2.fasta
+	@python3 ../TN_fisher.py $^
+	@make -s clean
+
 #clean files
 clean:
 	@rm -rf *.fasta ../__pycache__
@@ -62,12 +65,17 @@ clean:
 
 #test: jc.test hky.test k2p.test tn.test
 
+jc.test:
+	@echo "Testing Jukes Cantor"
+	@python3 ../Tests/test_jc.py
+	@make -s clean
+
 tn.test:
-	@echo "Testing tn"
+	@echo "Testing Tamura Nei"
 	@python3 ../Tests/test_tn.py
 	@make -s clean
 
 k2p.test:
-	@echo "Testing k2p"
+	@echo "Testing Kimura 2 parameter"
 	@python3 ../Tests/test_k2p.py
 	@make -s clean
