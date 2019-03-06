@@ -28,6 +28,8 @@ def EM_TN(tolerance,N_counts):
     p,q,r,t = initialParameters(piA,piC,piG,piT,N_counts)
     #print('Initial estimates: p,q,r',p,' ',q,' ',r)
 
+    logL_values = []
+
     iteration = 0
     convergence = np.inf
     logLold = -np.inf
@@ -64,6 +66,7 @@ def EM_TN(tolerance,N_counts):
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
         logLnew=logLikelihood([piA,piC,piG,piT],p,q,r,N_counts)
+        logL_values.append(logLnew)
         if (logLold > logLnew):
             print('log Likelihood error')
             return 1
@@ -71,6 +74,10 @@ def EM_TN(tolerance,N_counts):
         convergence = np.absolute(logLnew-logLold)
         #print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
         logLold=logLnew
+
+    with open('logl_values.csv','w') as f:
+        writer = csv.writer(f)
+        writer.writerows(params)
 
     return postprints(r,p,q,piA,piC,piG,piT)
 
@@ -170,8 +177,6 @@ def postprints(r,p,q,piA,piC,piG,piT):
     alfaR = -np.log(r)/t
     beta = -np.log(q)/t
     rate = calcRate(piA,piC,piG,piT,alfaR,alfaY,beta)
-    #print('alfaR: ',alfaR,' alfaY: ',alfaY,' beta: ',beta,' piA:',piA,' piC: ',\
-    #    piC,' piG: ',piG,' piT ',piT,' Rate: ',rate)
     return [t,alfaR,alfaY,beta,piA,piC,piG,piT]
 
 def readFreqMatrix(file1,file2):
