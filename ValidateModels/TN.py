@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
 import numpy as np
-import sys
+import sys, csv
+from scipy.linalg import expm
+from scipy.linalg import inv
 
-import base_counting
+import base_counting, fisher
 
 def EM_TN(tolerance,N_counts):
     #   p = exp(-alfaY*t)
@@ -17,6 +19,33 @@ def EM_TN(tolerance,N_counts):
     # G  N[2][0]  N[2][1]  N[2][2]  N[2][3]
     # T  N[3][0]  N[3][1]  N[3][2]  N[3][3]
 
+    # Generate counts manually instead of using Dawg ###########################
+    # true_values t  aR  aY   b
+    # true_vals = [0.2,0.4,0.5,0.2]
+    #            0.2   0.4808    0.7212    0.9615
+    true_vals = [0.2,0.1/0.208,0.15/0.208,0.2/0.208]
+    # true pi
+    true_pi = [0.3,0.2,0.2,0.3,0.5,0.5]
+    n = 100000
+
+    # Rate matrix #
+    # p_m = p_matrix(true_vals[0],true_vals[1],true_vals[2],true_vals[3],true_pi)
+    # N_counts = np.random.multinomial(n,np.reshape(p_m,16))
+    # # N_counts = np.linalg.matrix_power(S,100)
+    # N_counts = np.reshape(N_counts,(4,4))
+    # print('Counts:\n',N_counts)
+    # print('total counts: ',np.sum(N_counts))
+
+    # N_counts = np.array([[25554,1017,1956,1590],[1063,15822,699,2286],[1949,673,16169,1096],[1626,2314,1062,25124]])
+
+    ################################################################
+    # S = TN([0.3,0.2,0.2,0.3],np.exp(-true_vals[0]*true_vals[2]), \
+    #     np.exp(-true_vals[0]*true_vals[3]), np.exp(-true_vals[0]*true_vals[1]))
+    # N_counts = np.random.multinomial(100000,np.reshape(S,16))
+    # N_counts = np.reshape(N_counts,(4,4))
+    # print(N_counts)
+    # print('total counts: ',np.sum(N_counts))
+
     piA = initialPi(0,N_counts)
     piC = initialPi(1,N_counts)
     piG = initialPi(2,N_counts)
@@ -28,8 +57,6 @@ def EM_TN(tolerance,N_counts):
     p,q,r,t = initialParameters(piA,piC,piG,piT,N_counts)
     #print('Initial estimates: p,q,r',p,' ',q,' ',r)
 
-    logL_values = []
-
     iteration = 0
     convergence = np.inf
     logLold = -np.inf
@@ -39,11 +66,13 @@ def EM_TN(tolerance,N_counts):
 
         #E-step
         S = TN([piA,piC,piG,piT],p,q,r)
+        #print(t,-np.log(r)/t,-np.log(p)/t,-np.log(q)/t,[piA,piC,piG,piT,piR,piY])
+        # S = p_matrix(t,-np.log(r)/t,-np.log(p)/t,-np.log(q)/t,[piA,piC,piG,piT,piR,piY])
         N = N_counts/S
         s1=q*r*(N[0][0]*piA+N[2][2]*piG)
         s2=q*p*(N[1][1]*piC+N[3][3]*piT)
-        s3=q*(1.0-r)*((piA**2.0*N[0][0]+piG**2.0*N[2][2])+piA*piG*(N[0][2]+N[2][0]))/piR
-        s4=q*(1.0-p)*((piC**2.0*N[1][1]+piT**2.0*N[3][3])+piC*piT*(N[1][3]+N[3][1]))/piY
+        s3=q*(1.0-r)/piR*((piA**2.0*N[0][0]+piG**2.0*N[2][2])+piA*piG*(N[0][2]+N[2][0]))
+        s4=q*(1.0-p)/piY*((piC**2.0*N[1][1]+piT**2.0*N[3][3])+piC*piT*(N[1][3]+N[3][1]))
         s5=calcS5(N,[piA,piC,piG,piT],q)
         s6=calcS(0,2,[piA,piC,piG,piT],p,q,r,N)
         s7=calcS(2,0,[piA,piC,piG,piT],p,q,r,N)
@@ -51,6 +80,9 @@ def EM_TN(tolerance,N_counts):
         s9=calcS(3,1,[piA,piC,piG,piT],p,q,r,N)
         s10=s3
         s11=s4
+
+        # Fisher E-step
+        s_2 = fisher.fisher_E_Step(N_counts,r,p,q,[piA,piC,piG,piT,piR,piY])
 
         #M-step
         r=s1/(s1+s3)
@@ -66,20 +98,49 @@ def EM_TN(tolerance,N_counts):
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
         logLnew=logLikelihood([piA,piC,piG,piT],p,q,r,N_counts)
-        logL_values.append(logLnew)
         if (logLold > logLnew):
-            print('log Likelihood error')
+            print('log Likelihood error. Iteration ',iteration)
+            print(postprints(r,p,q,piA,piC,piG,piT))
+            print('convergence: ',np.absolute(logLnew-logLold))
             return 1
             break
         convergence = np.absolute(logLnew-logLold)
-        #print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
+        # print(iteration,'log-likelihood= ',logLnew,' R= ',R,' t=',t,' rho= ',rho)
         logLold=logLnew
 
-    with open('logl_values.csv','w') as f:
-        writer = csv.writer(f)
-        writer.writerows(params)
+    # print('convergence: ',convergence)
+    # with open('logl_values.csv','w') as f:
+    #     writer = csv.writer(f)
+    #     writer.writerows(params)
 
-    return postprints(r,p,q,piA,piC,piG,piT)
+    # print('iterations: ', iteration)
+    # print('fisher information:')
+    # print(fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],s_2,N_counts,n))
+
+    # return postprints(r,p,q,piA,piC,piG,piT)
+
+    # true fisher info
+    # true_info = np.array([[460266,0,277647],[0,387246,222633],[277647,222633,1.54827e+6]])
+    true_info = np.array([[110032.,0,66374.6],[0,92488.,53172.8],[66374.6,53172.8,383806.]])
+    # print('True fisher info:')
+    # print(true_info)
+    theta = np.array([[np.exp(-true_vals[1]*true_vals[0])],[np.exp(-true_vals[2]*\
+        true_vals[0])],[np.exp(-true_vals[3]*true_vals[0])]])
+    theta_hat = np.array([[r],[p],[q]])
+    # print('chi-square value: ',np.matmul(np.matmul(np.transpose(theta_hat-theta),\
+    #     inv(true_info)),(theta_hat-theta)))
+    em_chisq = np.matmul(np.matmul(np.transpose(theta_hat-theta), \
+        fisher.B(r,p,q,[s1,s2,s3,s4,s5]) - fisher.S_2(r,p,q,[piA,piC,piG,piT],\
+        [s1,s2,s3,s4,s5],s_2,N_counts,n)),(theta_hat-theta))
+    # print('chi^2 EM: ',em_chisq)
+
+    out_file = open('./chisq_values.csv','a')
+    out_file.write(str(em_chisq[0,0])+'\n')
+
+    params = [r,p,q]
+    # print(params,piA,piC,piG,piT)
+    # print('s:',s1,' ',s2,' ',s3,' ',s4,' ',s5)
+    #print(fisher.expected_prob(r,p,q,[piA,piC,piG,piT],N_counts))
 
 def TN(piVector,p,q,r):
     v = np.zeros((4,4))
@@ -120,7 +181,7 @@ def calcS(i,j,piVector,p,q,r,N):
     return np.sum(y) + np.sum(z) + x
 
 def initialPi(i,N):
-    return (np.sum(N[:][i]) + np.sum(N[i][:]))/np.sum(N)
+    return (np.sum(N[:][i]) + np.sum(N[i][:]))/(2*np.sum(N))
 
 def initialParameters(piA,piC,piG,piT,N):
     piR = piA+piG
@@ -193,10 +254,42 @@ def calcRate(piA,piC,piG,piT,alfaR,alfaY,beta):
          + piT*(beta*piA + beta*piG + alfaY*piC/piY+beta*piC)
     return rate
 
+def p_matrix(t,alfaR,alfaY,b,pi):
+    #    A   C   G   T
+    #  ----------------
+    # A|   (instead of
+    # C|    Felsenstein
+    # G|    order:
+    # T|    A G C T)
+
+    A = np.zeros((4,4),dtype=float)
+    A[0][0] = -(alfaR*pi[2]/pi[4] + b*pi[2] + b*pi[1] + b*pi[3])
+    A[0][1] = A[2][1] = b*pi[1]
+    A[0][2] = alfaR*pi[2]/pi[4] + b*pi[2]
+    A[0][3] = A[2][3] = b*pi[3]
+    A[2][0] = alfaR*pi[0]/pi[4] + b*pi[0]
+    A[2][2] = -(alfaR*pi[0]/pi[4] + b*pi[0] + b*pi[1] + b*pi[3])
+    A[1][0] = A[3][0] = b*pi[0]
+    A[1][2] = A[3][2] = b*pi[2]
+    A[1][1] = -(alfaY*pi[3]/pi[5] + b*pi[3] + b*pi[0] + b*pi[2])
+    A[1][3] = alfaY*pi[3]/pi[5] + b*pi[3]
+    A[3][1] = alfaY*pi[1]/pi[5] + b*pi[1]
+    A[3][3] = -(alfaY*pi[1]/pi[5] + b*pi[1] + b*pi[0] + b*pi[2])
+
+    p_m = expm(A*t)
+
+    for i in range(4):
+        p_m[i][:] = np.multiply(p_m[i][:],pi[i])
+        # p_m[:][i] = np.multiply(p_m[:][i],pi[i])
+
+    #assert(np.sum(p_m) == 1.0)
+    return p_m
+
 def main(args):
-    tolerance = np.power(10.0,-15)
+    tolerance = np.power(10.0,-20)
     print('t, aR, aY, b, piA, piC, piG, piT')
-    print(np.round(EM_TN(tolerance,readFreqMatrix(args[1],args[2])), decimals = 5))
+    # print(np.round(EM_TN(tolerance,readFreqMatrix(args[1],args[2])), decimals = 5))
+    print(EM_TN(tolerance,readFreqMatrix(args[1],args[2])))
 
 if __name__ == '__main__':
     main(sys.argv)
