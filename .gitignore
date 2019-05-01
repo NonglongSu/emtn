@@ -21,4 +21,4 @@ ValidateModels/nim
 *.blg
 
 # json data files
-.json
+*.json
