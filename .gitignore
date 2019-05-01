@@ -19,3 +19,6 @@ ValidateModels/nim
 # bibtex temp files
 *.bbl
 *.blg
+
+# json data files
+.json

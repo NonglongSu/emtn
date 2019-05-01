@@ -41,7 +41,6 @@ def fisher_E_Step(N,r,p,q,pi):
             N[3][3]*y[3][3]) + 2*N[3][1]*y[3][1]*N[3][3]*y[3][3]
 
     # E(s5^2) = E(Zij^2) + (sum(Zij))^2 - sum(Zij^2)
-    # TODO: review E(s5^2)
     z,z2,z_2 = exp_z2(r,p,q,pi,N)
     s_2[4] = z - z2 + z_2
 
@@ -95,7 +94,7 @@ def B(r,p,q,s):
     return b
 
 # S^2 matrix
-def S_2(r,p,q,pi,s,s_2,N,n):
+def S_2(r,p,q,pi,s,s_2,N):
     exp_p = expected_prob(r,p,q,pi,N)
     m = np.zeros((3,3),dtype=float)
     m[0][0] = s_2[0]/(r**2) - 2*(exp_p[0]/((1-r)*r)) + s_2[2]/((1-r)**2)
@@ -106,7 +105,7 @@ def S_2(r,p,q,pi,s,s_2,N,n):
         + s_2[3]/(q**2) - (2/((1-q)*q))*( exp_p[2] +exp_p[3] \
         + exp_p[4] + exp_p[5]) + s_2[4]/((1-q)**2)
 
-    # since S*Tranpose[S] is symmetric
+    # since S*Transpose[S] is symmetric
     m[0][1] = m[1][0] = s[0]*s[1]/(p*r) - s[1]*s[2]/((1-r)*p) - \
         s[0]*s[3]/((1-p)*r) + s[2]/(1-p) * s[3]/(1-r)
 
@@ -143,10 +142,10 @@ def expected_prob(r,p,q,pi,N):
     # E(s1*s5)
     n[2] = exp_a1a2(m[0,0,0],m[2,0,0],N[0,0]) + exp_a1a2(m[0,2,2],m[2,2,2],N[2,2])+\
         np.sum(m[2,:,:])*(m[0,0,0]+m[0,2,2]) - m[0,0,0]*m[2,0,0] - m[0,2,2]*m[2,2,2]
-    # # E(s2*s5)
+    # E(s2*s5)
     n[3] = exp_a1a2(m[0,1,1],m[2,1,1],N[1,1]) + exp_a1a2(m[0,3,3],m[2,3,3],N[3,3])+\
         np.sum(m[2,:,:])*(m[0,1,1]+m[0,3,3]) - m[0,1,1]*m[2,1,1] - m[0,3,3]*m[2,3,3]
-    # # E(s3*s5)
+    # E(s3*s5)
     n[4] = exp_a1a2(m[1,0,0],m[2,0,0],N[0,0]) + exp_a1a2(m[1,0,2],m[2,0,2],N[0,2])+\
         exp_a1a2(m[1,2,0],m[2,2,0],N[2,0]) + exp_a1a2(m[1,2,2],m[2,2,2],N[2,2])+\
         np.sum((m[1,0,0]+m[1,0,2]+m[1,2,0]+m[1,2,2])*m[2,:,:])-\
@@ -163,16 +162,9 @@ def exp_a1a2(a1,a2,N):
     return a1*a2 - a1*a2/N
 
 # Fisher information matrix
-def fisher_info(r,p,q,pi,s,s_2,N,n):
-    print('s^2: ',s_2)
-    I_y = B(r,p,q,s) - S_2(r,p,q,pi,s,s_2,N,n)
-    print('B ')
-    print(B(r,p,q,s))
-    print('S^2 ')
-    print(S_2(r,p,q,pi,s,s_2,N,n))
-    print('Inf matrix')
-    print(I_y)
-    # print('covariance matrix:')
-    # print(np.linalg.inv(I_y))
-
-    #return I_y
+def fisher_info(r,p,q,pi,s,s_2,N):
+    I_y = B(r,p,q,s) - S_2(r,p,q,pi,s,s_2,N)
+    # print('B \n',B(r,p,q,s))
+    # print('S^2 \n',S_2(r,p,q,pi,s,s_2,N))
+    # print('covariance matrix: \n',np.linalg.inv(I_y))
+    return I_y

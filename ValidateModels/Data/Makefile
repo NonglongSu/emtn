@@ -1,65 +1,53 @@
 
-# do nothing by default
+# display help message by default
 default: help
 
 .PHONY: clean jc hky k2p tn help
 
 # display help message
 help:
-	@echo "Make commands:"
-	@echo "jc		run Jukes Cantor model"
-	@echo "k2p		run Kimura 2 Parameter model"
-	@echo "hky		run Hasegawa, Kishina, and Yano model"
-	@echo "tn		run Tamura-Nei model"
-	@echo "help		display this message"
+	@echo "Usage: make [options] target"
+	@echo "Targets:"
+	@echo "  jc         run Jukes Cantor model"
+	@echo "  k2p        run Kimura 2 Parameter model"
+	@echo "  hky        run Hasegawa, Kishina, and Yano model"
+	@echo "  tn         run Tamura-Nei model"
+	@echo "  help       display help message"
 
 #run dawg and save output
 %.fasta: %.dawg
 	@echo -n "Running dawg..."
-	@dawg $< > $@
+	@dawg $< -o $@
 	@echo "...done"
 
-#generate frequencies matrix from sequences
-#	sed gets odd/even lines then grep gets only DNA sequences
-%.1.fasta: %.fasta
-	@grep -o '\ [ACGT]\+' $< | sed -n '1~2p' | tr -d '\n '> $@
-%.2.fasta: %.fasta
-	@grep -o '\ [ACGT]\+' $< | sed -n '2~2p' | tr -d '\n '> $@
-
-## TODID: $^ means all arguments while $< its only the first one
-
 #run HKY model with dawg output
-jc: jc.1.fasta jc.2.fasta
+jc: jc.fasta
 	@echo -n "Running EM: Jukes Cantor"
 	@python3 ../JC.py $^
-	@echo -n "Cleaning files..."
 	@make -s clean
-	@echo ".done"
 
-hky: hky.1.fasta hky.2.fasta
-	python3 ../HKY.py $^
-	make -s clean
+hky: hky.fasta
+	@echo "Running EM: HKY"
+	@python3 ../HKY.py $^
+	@make -s clean
 
-k2p: k2p.1.fasta k2p.2.fasta
-	@echo "Running EM"
+k2p: k2p.fasta
+	@echo "Running EM: Kimura 2-param"
 	@python3 ../K2P.py $^
 	@make -s clean
 
-tn: tn.1.fasta tn.2.fasta
-	@python3 ../TN.py $^
-	@make -s clean
-
-fisher: tn.1.fasta tn.2.fasta
-	@python3 ../TN_fisher.py $^
+tn: tn.fasta
+	@echo "Running EM: Tamura-Nei"
+	@python3 ../TN.py $^ data.json
 	@make -s clean
 
 #clean files
 clean:
 	@rm -rf *.fasta ../__pycache__
 
-#################################################################
-# Tests
-#################################################################
+################################################################################
+# Tests                                                                        #
+################################################################################
 
 .PHONY: test.all test.jc test.hky test.k2p test.tn clean.tests
 

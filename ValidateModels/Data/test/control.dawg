@@ -2,5 +2,5 @@ Tree.tree = "(A:0.2)B;"
 Subst.Model = "TN"
 Subst.Params = 0.5, 0.4, 0.2
 Subst.Freqs = 0.3,0.2,0.2,0.3
-Root.Length = 1000000
+Root.Length = 100000
 Sim.reps = 1
