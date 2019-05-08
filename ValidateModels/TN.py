@@ -1,14 +1,12 @@
 #!/usr/bin/python3
 
 import numpy as np
-import sys, csv
-from scipy.linalg import expm
-from scipy.linalg import inv
-import json
-
+import sys, json
+from scipy.linalg import expm, inv
+from scipy.stats import chi2
 import base_counting, fisher
 
-def EM_TN(tolerance,N_counts,json_out):
+def EM_TN(tolerance,N_counts,json_out,print_output):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
@@ -43,15 +41,19 @@ def EM_TN(tolerance,N_counts,json_out):
 
     # estimate initial values for p,q,r,t using TN distance formula
     p,q,r,t = initialParameters(piA,piC,piG,piT,N_counts)
+    params = np.array([p,q,r])
 
     iteration = 0
-    convergence = np.inf
+    max_iterations = 1000
+    p_val = np.inf
+    info = np.ones((3,3),dtype=float)
     logLold = -np.inf
 
-    json_data = []
+    json_data = {}
+    json_data['params'] = []
 
-    while convergence > tolerance:
-        iteration+=1
+    while p_val > tolerance and iteration < max_iterations:
+        iteration += 1
 
         #E-step
         S = TN([piA,piC,piG,piT],p,q,r)
@@ -86,30 +88,42 @@ def EM_TN(tolerance,N_counts,json_out):
         #Calculation of R,t,rho
         R,t,rho = calcParameters(piA,piC,piG,piT,p,q,r)
         logLnew=logLikelihood([piA,piC,piG,piT],p,q,r,N_counts)
+
         if (logLold > logLnew):
             print('LOG LIKELIHOOD ERROR. Iteration ',iteration)
-            print('%d r: %.8f p: %.8f q: %.8f LogLhood: %.10f LogLhood diff: %.5e ' % \
-                (iteration,r,p,q,logLnew,convergence))
-            # print(postprints(r,p,q,piA,piC,piG,piT))
-            print('convergence: ',logLnew-logLold)
+            print('%d r: %.8f p: %.8f q: %.8f LogLhood: %.10f convergence: %.5e ' % \
+                (iteration,r,p,q,logLnew,chisq))
+            print('loglikelihood diff: ',logLnew-logLold)
             return 1
-            break
-        convergence = logLnew-logLold
+
+        theta_diff = np.array([p,q,r]) - params
+        chisq = np.matmul(np.matmul(np.transpose(theta_diff),\
+            info), theta_diff)
+        p_val = chi2.cdf(chisq,3)
+
+        info = fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],\
+            s_2,N_counts)
         logLold=logLnew
+        params = [p,q,r]
 
-        print('%d r: %.8f p: %.8f q: %.8f LogLhood: %.10f LogLhood diff: %.5e ' % \
-            (iteration,r,p,q,logLnew,convergence))
+        if(print_output):
+            print('%d r: %.8f p: %.8f q: %.8f LogLhood: %.10f p value: %.5e ' % \
+                (iteration,r,p,q,logLnew,p_val))
 
-        json_data.append({"r":r, "p":p, "q":q, "LogLhood":logLnew, "LogLhood diff":convergence})
+        json_data['params'].append({"r":r, "p":p, "q":q, "LogLhood":logLnew, "p_value":p_val})
+
+    fisher_information = fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],s_2,N_counts)
+    if(print_output):
+        print('\nfisher information:\n',fisher_information)
+
+    # append fisher info matrix instead of chisq
+    json_data['chisq'] = chisq
+    json_data['fisher_info'] = fisher_information.tolist()
 
     # save data in json file
     with open(json_out,'w') as outfile:
         json.dump(json_data,outfile)
 
-    print('\nfisher information:\n',\
-      fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],s_2,N_counts))
-
-    # return postprints(r,p,q,piA,piC,piG,piT)
 
 def TN(piVector,p,q,r):
     v = np.zeros((4,4))
@@ -174,7 +188,8 @@ def initialParameters(piA,piC,piG,piT,N):
     rho = 1.0
 
     beta = 0.5/(piR*piY*(1.0+R))
-    alfaY = (piR*piY*R-piA*piG-piC*piT)/(2.0*(1.0+R)*(piY*piA*piG*rho+piR*piC*piT))
+    alfaY = (piR*piY*R-piA*piG-piC*piT)/\
+        (2.0*(1.0+R)*(piY*piA*piG*rho+piR*piC*piT))
     alfaR = rho*alfaY
 
     p = np.exp(-alfaY*d)
@@ -200,10 +215,10 @@ def postprints(r,p,q,piA,piC,piG,piT):
     piR = piA + piG
     piY = piC + piT
     Ts = -2.0*np.log(r)*piA*piG/piR - 2.0*np.log(p)*piC*piT/piY \
-        -np.log(q)*(2.0*piA*piG + 2.0*piC*piT)              #rate of transitions
-    Tv = -2*np.log(q)*piR*piY                              #rate of transversions
+        -np.log(q)*(2.0*piA*piG + 2.0*piC*piT)   #rate of transitions
+    Tv = -2*np.log(q)*piR*piY                    #rate of transversions
     t = Ts + Tv
-    R = Ts/Tv                                           #transition/transversion ratio
+    R = Ts/Tv                                    #transition/transversion ratio
     alfaY = -np.log(p)/t
     alfaR = -np.log(r)/t
     beta = -np.log(q)/t
@@ -247,7 +262,7 @@ def p_matrix(t,alfaR,alfaY,b,pi):
 
 def main(args):
     tolerance = np.power(10.0,-12)
-    EM_TN(tolerance,readFreqMatrix(args[1]),args[2])
+    EM_TN(tolerance,readFreqMatrix(args[1]),args[2],(False if len(args)==4 else True))
 
 if __name__ == '__main__':
     main(sys.argv)

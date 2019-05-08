@@ -4,9 +4,10 @@ default: help
 
 NUM = 1000
 LIST := $(shell echo {1..$(NUM)})
+FASTA_FILES = $(addsuffix .fasta,$(addprefix output/,$(LIST)))
 JSON_FILES = $(addsuffix .json,$(addprefix output/,$(LIST)))
 
-.PHONY: help clean_fas clean_json
+.PHONY: help clean clean_json
 
 # display help message
 help:
@@ -19,13 +20,17 @@ output/%.fasta:
 	@dawg control.dawg -o $@
 
 output/%.json: output/%.fasta
-	@python3 ../../TN.py $^ $@
+	@python3 ../../TN.py $< $@ --no_print
+	@echo -e "File "$*" of "$(NUM)
+	@echo -en "\e[1A"
+
 
 fisher_test: $(JSON_FILES)
-	@make -s clean_fas
+	@make -s clean
+	@python3 fisher_chisq.py control.dawg $^
 
-clean_fas:
-	@rm output/*.fasta
+clean:
+	@rm -f $(FASTA_FILES)
 
 clean_json:
-	@rm output/*.json
+	@rm -f $(JSON_FILES)
