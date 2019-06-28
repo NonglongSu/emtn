@@ -6,7 +6,7 @@ from scipy.linalg import expm, inv
 from scipy.stats import chi2
 import base_counting, fisher
 
-def EM_TN(tolerance,N_counts,json_out,print_output):
+def EM_TN(tolerance,json_out,print_output,N_counts = 'multinomial',test = False):
     #   p = exp(-alfaY*t)
     #   q = exp(-beta*t)
     #   r = exp(-alfaR*t)
@@ -18,19 +18,36 @@ def EM_TN(tolerance,N_counts,json_out,print_output):
     # G  N[2][0]  N[2][1]  N[2][2]  N[2][3]
     # T  N[3][0]  N[3][1]  N[3][2]  N[3][3]
 
-    # Generate counts manually instead of using Dawg ###########################
+    if(N_counts == 'multinomial' or test == True):
+        # Create counts matrix from a random distribution
+        temp = np.random.dirichlet(np.ones(2))
+        while temp[0]<0.1 or temp[1]<0.1:
+            temp = np.random.dirichlet(np.ones(2))
+        freq = np.array([temp[0]/2,temp[1]/2,temp[1]/2,temp[0]/2])
 
-    # Rate matrix #
-    # p_m = p_matrix(true_vals[0],true_vals[1],true_vals[2],true_vals[3],true_pi)
-    # N_counts = np.random.multinomial(n,np.reshape(p_m,16))
-    # # N_counts = np.linalg.matrix_power(S,100)
-    # N_counts = np.reshape(N_counts,(4,4))
+        fR = freq[0]+freq[2]
+        fY = freq[1]+freq[3]
 
-    ################################################################
-    # S = TN([0.3,0.2,0.2,0.3],np.exp(-true_vals[0]*true_vals[2]), \
-    #     np.exp(-true_vals[0]*true_vals[3]), np.exp(-true_vals[0]*true_vals[1]))
-    # N_counts = np.random.multinomial(100000,np.reshape(S,16))
-    # N_counts = np.reshape(N_counts,(4,4))
+        t = np.random.uniform(low=0.1,high=0.3)
+        rho = np.random.normal(1,0.1)
+        # rho = np.random.uniform(low=0.5,high=1.5)
+        R = np.random.uniform(low=max((freq[0]*freq[2]+freq[1]*freq[3])/\
+            (fR*fY),rho)+0.2, high=5.0)
+
+        b = 1/(2*fR*fY*(1+R))
+        aY = (fR*fY*R-freq[0]*freq[2]-freq[1]*freq[3])/(2*(1+R)*\
+            (fY*freq[0]*freq[2]*rho+fR*freq[1]*freq[3]))
+        aR = rho*aY
+
+        r,p,q = np.exp(-t*aR),np.exp(-t*aY),np.exp(-t*b)
+        print('true r,p,q',r,p,q)
+        true_params = [r,p,q]
+
+        S = TN(freq,p,q,r)
+        N_counts = np.random.multinomial(1000000,np.reshape(S,16))
+        N_counts = np.reshape(N_counts,(4,4))
+    else:
+        N_counts = readFreqMatrix(N_counts)
 
     piA = initialPi(0,N_counts)
     piC = initialPi(1,N_counts)
@@ -48,16 +65,19 @@ def EM_TN(tolerance,N_counts,json_out,print_output):
     p_val = np.inf
     info = np.ones((3,3),dtype=float)
     logLold = -np.inf
+    logLnew = 1
+    log_diff = np.inf
 
     json_data = {}
     json_data['params'] = []
 
-    while p_val > tolerance and iteration < max_iterations:
+    # while (p_val > tolerance and iteration < max_iterations) or iteration < 10 :
+    while (log_diff > tolerance and iteration < max_iterations) or iteration < 10 :
+
         iteration += 1
 
         #E-step
         S = TN([piA,piC,piG,piT],p,q,r)
-        # S = p_matrix(t,-np.log(r)/t,-np.log(p)/t,-np.log(q)/t,[piA,piC,piG,piT,piR,piY])
         N = N_counts/S
         s1=q*r*(N[0][0]*piA+N[2][2]*piG)
         s2=q*p*(N[1][1]*piC+N[3][3]*piT)
@@ -103,27 +123,41 @@ def EM_TN(tolerance,N_counts,json_out,print_output):
 
         info = fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],\
             s_2,N_counts)
+
+        log_diff = logLnew-logLold
         logLold=logLnew
-        params = [p,q,r]
+        params = np.array([p,q,r])
 
         if(print_output):
             print('%d r: %.8f p: %.8f q: %.8f LogLhood: %.10f p value: %.5e ' % \
                 (iteration,r,p,q,logLnew,p_val))
 
         json_data['params'].append({"r":r, "p":p, "q":q, "LogLhood":logLnew, "p_value":p_val})
+        # end of while loop
 
     fisher_information = fisher.fisher_info(r,p,q,[piA,piC,piG,piT],[s1,s2,s3,s4,s5],s_2,N_counts)
     if(print_output):
         print('\nfisher information:\n',fisher_information)
 
-    # append fisher info matrix instead of chisq
+    # append info to output json
     json_data['chisq'] = chisq
     json_data['fisher_info'] = fisher_information.tolist()
+    json_data['iterations'] = iteration
 
     # save data in json file
     with open(json_out,'w') as outfile:
         json.dump(json_data,outfile)
 
+    if(test):
+        diff = np.array([r,p,q]) - true_params
+        x2_validation = np.matmul(np.matmul(np.transpose(diff),fisher_information), diff)
+        p_val = chi2.cdf(np.matmul(np.matmul(np.transpose(diff),fisher_information), diff),3)
+
+        with open('em_chi_values.csv','a+') as outputfile:
+            outputfile.write(str(p_val)+","+str(R)+","+str(rho)+","+str(freq)+"\n")
+
+        with open('iterations.csv','a+') as outit:
+            outit.write(str(iteration)+"\n")
 
 def TN(piVector,p,q,r):
     v = np.zeros((4,4))
@@ -180,6 +214,9 @@ def initialParameters(piA,piC,piG,piT,N):
     w1 = 1.0-p1/k1-q/2.0*piR
     w2 = 1.0-p2/k2-q/2.0*piY
     w3 = 1.0-q/2.0*piR*piY
+    if(w1<0): w1=np.e
+    if(w2<0): w2=np.e
+    if(w3<0): w3=np.e
 
     d = -k1*np.log(w1)-k2*np.log(w2)-k3*np.log(w3)
     s = -k1*np.log(w1)-k2*np.log(w2)-(k3-2*piR*piY)*np.log(w3)
@@ -222,6 +259,7 @@ def postprints(r,p,q,piA,piC,piG,piT):
     alfaY = -np.log(p)/t
     alfaR = -np.log(r)/t
     beta = -np.log(q)/t
+    rho = alfaR/alfaY
     rate = calcRate(piA,piC,piG,piT,alfaR,alfaY,beta)
     return [t,alfaR,alfaY,beta,piA,piC,piG,piT]
 
@@ -239,29 +277,8 @@ def calcRate(piA,piC,piG,piT,alfaR,alfaY,beta):
          + piT*(beta*piA + beta*piG + alfaY*piC/piY+beta*piC)
     return rate
 
-def p_matrix(t,alfaR,alfaY,b,pi):
-    A = np.zeros((4,4),dtype=float)
-    A[0][0] = -(alfaR*pi[2]/pi[4] + b*pi[2] + b*pi[1] + b*pi[3])
-    A[0][1] = A[2][1] = b*pi[1]
-    A[0][2] = alfaR*pi[2]/pi[4] + b*pi[2]
-    A[0][3] = A[2][3] = b*pi[3]
-    A[2][0] = alfaR*pi[0]/pi[4] + b*pi[0]
-    A[2][2] = -(alfaR*pi[0]/pi[4] + b*pi[0] + b*pi[1] + b*pi[3])
-    A[1][0] = A[3][0] = b*pi[0]
-    A[1][2] = A[3][2] = b*pi[2]
-    A[1][1] = -(alfaY*pi[3]/pi[5] + b*pi[3] + b*pi[0] + b*pi[2])
-    A[1][3] = alfaY*pi[3]/pi[5] + b*pi[3]
-    A[3][1] = alfaY*pi[1]/pi[5] + b*pi[1]
-    A[3][3] = -(alfaY*pi[1]/pi[5] + b*pi[1] + b*pi[0] + b*pi[2])
-
-    p_m = expm(A*t)
-
-    for i in range(4):
-        p_m[i][:] = np.multiply(p_m[i][:],pi[i])
-    return p_m
-
 def main(args):
-    tolerance = np.power(10.0,-12)
+    tolerance = np.power(10.0,-10)
     EM_TN(tolerance,readFreqMatrix(args[1]),args[2],(False if len(args)==4 else True))
 
 if __name__ == '__main__':

@@ -20,5 +20,6 @@ ValidateModels/nim
 *.bbl
 *.blg
 
-# json data files
+# json and csv data files
 *.json
+*.csv

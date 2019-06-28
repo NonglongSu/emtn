@@ -47,6 +47,8 @@ def test_EM_TN(estimates):
         if(check_range(estimates[i],t_values[i]) == False):
             print('Assertion failed.... ',values[i],': ',estimates[i],' != ',t_values[i])
             e += 1
+        else:
+            print(values[i],': ',estimates[i])
     return e
 
 def main():

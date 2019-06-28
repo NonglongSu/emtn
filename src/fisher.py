@@ -159,7 +159,10 @@ def expected_prob(r,p,q,pi,N):
     return n
 
 def exp_a1a2(a1,a2,N):
-    return a1*a2 - a1*a2/N
+    if(not N>0):
+        return a1*a2
+    else:
+        return a1*a2 - a1*a2/N
 
 # Fisher information matrix
 def fisher_info(r,p,q,pi,s,s_2,N):
