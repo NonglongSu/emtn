@@ -6,13 +6,18 @@ default: help
 
 # display help message
 help:
-	@echo "Usage: make [options] target"
-	@echo "Targets:"
-	@echo "  jc         run Jukes Cantor model"
-	@echo "  k2p        run Kimura 2 Parameter model"
-	@echo "  hky        run Hasegawa, Kishina, and Yano model"
-	@echo "  tn         run Tamura-Nei model"
-	@echo "  help       display help message"
+	@echo "Usage: make {model}_{input method} [help]"
+	@echo "  models:"
+	@echo "    - JC:            Jukes Cantor"
+	@echo "    - K2P:           Kimura 2 Parameter"
+	@echo "    - HKY:           Hasegawa, Kishina, and Yano"
+	@echo "    - TN:            Tamura-Nei"
+	@echo "  input methods:"
+	@echo "    - mult:          Randomly generate parameters from multinomial distribution"
+	@echo "    - fasta:         Input fasta file. Must be named {model}.fasta"
+	@echo "    - dawg:          Input dawg file. Must be named {model}.fasta"
+	@echo "  help:"
+	@echo "                     display help message"
 
 #run dawg and save output
 %.fasta: %.dawg
@@ -20,26 +25,21 @@ help:
 	@dawg $< -o $@
 	@echo "...done"
 
-#run HKY model with dawg output
-jc: jc.fasta
-	@echo -n "Running EM: Jukes Cantor"
-	@python3 ../JC.py $^
-	@make -s clean
+%_mult:
+	@echo "Running EM with randomly generated parameters"
+	@python3 -B main.py $*
+	@rm -rf __pycache__
 
-hky: hky.fasta
-	@echo "Running EM: HKY"
-	@python3 ../HKY.py $^
-	@make -s clean
+%_fasta:
+	@echo "Running EM with fasta file input"
+	@python3 -B main.py $* -i $*.fasta
+	@rm -rf __pycache__
 
-k2p: k2p.fasta
-	@echo "Running EM: Kimura 2-param"
-	@python3 ../K2P.py $^
-	@make -s clean
+%_dawg: %.fasta
+	@echo "Running EM with dawg file"
+	@python3 -B main.py $* -i $<
+	@rm -rf __pycache__
 
-tn: tn.fasta
-	@echo "Running EM: Tamura-Nei"
-	@python3 ../TN.py $^ data.json
-	@make -s clean
 
 #clean files
 clean:

@@ -2,26 +2,28 @@
 
 import sys, json, re
 import numpy as np
-from scipy.stats import anderson
+from scipy.stats import anderson, chi2
+
+# TODO: remove all code for 1000 simulations since we use matrix exponentiation
+#       instead of dawg
 
 def main(args):
-    chi_square = []
-    true_params = get_true_param(args[1])
+    p_values = []
+    true_p = true_parameters(args)
 
-    for i in range(2,len(args)):
+    for i in range(3,len(args)):
         # get values from json file
         data = open(args[i])
-        # chisq_fisher.append(json.loads(data.read())['fisher_info'])
         em_result = json.loads(data.read())
-        # print(em_result['params'][-1]['r'])
 
         # calculate chi square
-        chi_square.append(chisq(em_result,true_params))
+        x2 = chisq(em_result,true_p)
+        p_values.append(chi2.cdf(x2,3))
 
-    # anderson-darling test
-    ad_test = anderson(chi_square,dist='norm')
-    print('Critical value at alpha = 5% for',len(args)-2,'runs is:'\
-        ,ad_test[1][2])
+        print(p_values[-1])
+
+def true_parameters(args):
+    return get_true_param(args[1])
 
 
 def chisq(em_result, true_params):
@@ -52,14 +54,24 @@ def get_true_param(file):
     t = float(t)
 
     # d
+    freq = [piA,piC,piG,piT]
+    d = 0
     m = np.array([[0,b,aR,b],[b,0,b,aY],[aR,b,0,b],[b,aY,b,0]])
-    m = np.array([piA,piC,piG,piT])*m
-    d = sum(np.matmul(np.transpose(m),np.array([piA,piC,piG,piT])))
+    for i in range(4):
+        for j in range(4):
+            d += m[i,j]*freq[i]*freq[j]
+    # m = np.array([[0,b,aR,b],[b,0,b,aY],[aR,b,0,b],[b,aY,b,0]])
+    # m = np.multiply(np.array([piA,piC,piG,piT]),m)
+    # d = np.sum(np.sum(np.multiply(np.transpose(m),np.array([piA,piC,piG,piT]))))
 
     b_em = b/d
     aR_em = (aR/d-b_em)*(piA+piG)
     aY_em = (aY/d-b_em)*(piC+piT)
 
+    # print('aR',aR_em,' aY',aY_em,' b',b_em)
+    # print(np.exp(-aR_em*t),np.exp(-aY_em*t),np.exp(-b_em*t))
+
+    # return np.array([np.exp(-aR*t),np.exp(-aY*t),np.exp(-b*t)])
     return np.array([np.exp(-aR_em*t),np.exp(-aY_em*t),np.exp(-b_em*t)])
 
 

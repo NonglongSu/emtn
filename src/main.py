@@ -6,14 +6,13 @@ import TN
 
 def tn(args):
     if(args.input == 'multinomial'):
-        TN.EM_TN(tolerance = args.tolerance, json_out = args.output, \
-            print_output = args.no_print)
+        TN.EM_TN(tolerance = args.tolerance, json_out = args.output[0], \
+            no_print = args.no_print, test = args.test)
     elif(re.search('.dawg$', args.input[0]) != None):
         print('Use of dawg is not currently supported.\nPlease run dawg independently and input fasta file.')
     elif(re.search('.fasta$',args.input[0]) != None):
-        print(args.input[0])
-        TN.EM_TN(tolerance = args.tolerance, json_out = args.output, \
-            print_output = args.no_print, N_counts = args.input[0])
+        TN.EM_TN(tolerance = args.tolerance, json_out = args.output[0], \
+            no_print = args.no_print, N_counts = args.input[0], test = args.test)
     else:
         print('Dawg or fasta file input parsing failed.')
 
@@ -40,7 +39,7 @@ def main():
         'Select DNA model', default = 'TN')
     parser.add_argument('-n','--no-print', action = 'store_true', help =
         'Prevent printing of values every iteration.', default = False)
-    parser.add_argument('-t','--tolerance',type = float, default = 1e-10, help =
+    parser.add_argument('--tolerance',type = float, default = 1e-10, help =
         'Tolerance for conversion')
     parser.add_argument('-i','--input', default = 'multinomial', \
         help = 'Input fasta or dawg file. If not input counts generated via multinomial distribution.',\
