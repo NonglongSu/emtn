@@ -3,7 +3,7 @@
 import numpy as np
 import sys
 
-import base_counting
+import lib
 
 # p = exp(-(4/3)*alpha*t)
 
@@ -82,7 +82,7 @@ def calcParam(p):
     return t
 
 def readFreqMatrix(file1,file2):
-    freq = base_counting.base_count(file1,file2)
+    freq = lib.base_count(file1,file2)
     freq = list(map(int,freq))
     N = np.reshape(freq,(4,4))
     return N

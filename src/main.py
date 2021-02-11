@@ -6,7 +6,7 @@ import TN
 
 def tn(args):
     if(args.input == 'multinomial'):
-        TN.EM_TN(tolerance = args.tolerance, json_out = args.output[0], \
+        TN.EM_TN(tolerance = args.tolerance, json_out = args.output, \
             no_print = args.no_print, test = args.test)
     elif(re.search('.dawg$', args.input[0]) != None):
         print('Use of dawg is not currently supported.\nPlease run dawg independently and input fasta file.')

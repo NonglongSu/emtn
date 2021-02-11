@@ -2,14 +2,14 @@
 # display help message by default
 default: help
 
-NUM = 1000
+NUM = 10000
 LIST := $(shell echo {1..$(NUM)})
 FASTA = $(addsuffix .fasta,$(addprefix output/,$(LIST)))
 JSON_FIXED = $(addsuffix .json,$(addprefix ../output/fixed,$(LIST)))
 JSON_MULT = $(addsuffix .json,$(addprefix ../output/mult,$(LIST)))
 DAWG_MULT = $(addsuffix .dawg,$(addprefix output/mult,$(LIST)))
 
-.PHONY: help clean clean_json
+.PHONY: help clean fisher_test mult_fisher_test
 
 # display help message
 help:
@@ -32,7 +32,7 @@ help:
 	@echo -en "\e[1A"
 
 fisher_test: $(JSON_FIXED)
-	@python3 fisher_chisq.py dawg_examples/control.dawg $^ > chi_values.csv
+	@python3 -B fisher_chisq.py dawg_examples/control.dawg $^ > chi_values.csv
 	@echo "Running Anderson-Darling test"
 	@R --vanilla --slave -e 'library(goftest);ad.test(read.csv("chi_values.csv",header=FALSE)$$V1)'
 	@make -s clean
